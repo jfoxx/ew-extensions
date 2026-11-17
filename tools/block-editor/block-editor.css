@@ -6,6 +6,19 @@
   padding-bottom: var(--s2-spacing-300, 24px);
 }
 
+.ew-block-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--s2-spacing-100, 8px);
+}
+
+.ew-block-checkbox input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .ew-admin-selector {
   margin: var(--s2-spacing-200, 16px);
 }

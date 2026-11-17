@@ -112,6 +112,38 @@ describe('block editor sidebar workflow', () => {
   });
   afterEach(() => element.remove());
 
+  it('writes checkbox changes as ordinary text through the guarded field update path', async () => {
+    const next = structuredClone(snapshot());
+    Object.assign(next.blocks[0].rows[0].cells[0].fields[0], {
+      value: 'false', optionKey: 'Externalize',
+    });
+    sdk.callback(next);
+    element._blockOptions = new Map([['Cards', new Map([
+      ['externalize', { type: 'checkbox', checked: 'true', unchecked: 'false' }],
+    ])]]);
+    const renderCheckbox = () => element._renderTextField(element._fields[0], false);
+    let template = renderCheckbox();
+    expect(template.strings.join('')).to.include('type="checkbox"');
+    expect(template.values[2]).to.equal(false);
+    expect(template.values[3]).to.equal(false);
+    await template.values.find((value) => typeof value === 'function')({ target: { checked: true } });
+    expect(calls[0][1].changes[0]).to.deep.equal({ type: 'setText', target: fieldTarget, value: 'true' });
+    template = renderCheckbox();
+    expect(template.values[2]).to.equal(true);
+    await template.values.find((value) => typeof value === 'function')({ target: { checked: false } });
+    expect(calls[1][1].changes[0].value).to.equal('false');
+  });
+
+  it('shows unknown checkbox values as mixed and disables read-only or busy controls', () => {
+    const current = { ...element._fields[0], checkbox: { checked: 'true', unchecked: 'false' } };
+    const template = element._renderTextField(current, true);
+    expect(template.values[2]).to.equal(false);
+    expect(template.values[3]).to.equal(true);
+    expect(template.values[4]).to.equal(true);
+    expect(element._renderTextField({ ...current, readOnly: true }, false).values[4]).to.equal(true);
+    expect(calls).to.have.length(0);
+  });
+
   it('downloads content image bytes once for fields and repeating-item thumbnails', async () => {
     const fetch = sdk.actions.daFetch;
     const requests = [];

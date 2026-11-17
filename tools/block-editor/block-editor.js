@@ -218,6 +218,21 @@ export class EwBlockProperties extends LitElement {
 
   _renderTextField(field, disabled) {
     const id = `ew-block-field-${field.key}`;
+    if (field.checkbox) {
+      const value = this._session.value(field, 'value');
+      return html`
+        <label for=${id} class="ew-block-checkbox">
+          <input id=${id} type="checkbox"
+            .checked=${value === field.checkbox.checked}
+            .indeterminate=${![field.checkbox.checked, field.checkbox.unchecked].includes(value)}
+            ?disabled=${disabled || field.readOnly}
+            @change=${(event) => this._commitText(
+              field,
+              event.target.checked ? field.checkbox.checked : field.checkbox.unchecked,
+            )}>
+          ${field.label}
+        </label>`;
+    }
     let control;
     if (field.values?.length) {
       control = html`
@@ -802,11 +817,16 @@ Adapt the rows, cells, and labels to the actual selected library variant; do not
         resolveBlockFields(block, definitions, { itemIndex })
       )).flat()
       : resolveBlockFields(block, definitions);
-    return fields.map((field) => ({
-      ...field,
-      values: field.optionKey
-        ? options?.get(normalizeForSlashMenu(field.optionKey)) : undefined,
-    }));
+    return fields.map((field) => {
+      const option = field.optionKey
+        ? options?.get(normalizeForSlashMenu(field.optionKey)) : undefined;
+      return {
+        ...field,
+        values: Array.isArray(option) ? option : undefined,
+        checkbox: field.type === 'text' && field.href === undefined && option?.type === 'checkbox'
+          ? option : undefined,
+      };
+    });
   }
 
   _captureField(field) {

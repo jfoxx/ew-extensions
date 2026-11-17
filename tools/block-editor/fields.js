@@ -92,11 +92,20 @@ export function isMultiBlockConfigured(rows, name) {
 export function processBlockOptions(data) {
   const map = new Map();
   (data || []).forEach((row) => {
-    if (!row.blocks || !row.key || !row.values) return;
-    const values = row.values.split('|').map((entry) => {
-      const [title, value] = entry.split('=').map((part) => part.trim());
-      return { title, value: value || title };
-    });
+    if (!row.blocks || !row.key) return;
+    let values;
+    if (row.type?.trim().toLowerCase() === 'checkbox') {
+      const checked = String(row.checked ?? '').trim();
+      const unchecked = String(row.unchecked ?? '').trim();
+      if (!checked || !unchecked || checked === unchecked) return;
+      values = { type: 'checkbox', checked, unchecked };
+    } else {
+      if (!row.values) return;
+      values = row.values.split('|').map((entry) => {
+        const [title, value] = entry.split('=').map((part) => part.trim());
+        return { title, value: value || title };
+      });
+    }
     row.blocks.split(',').forEach((name) => {
       const key = normalizeForSlashMenu(name);
       if (!map.has(key)) map.set(key, new Map());

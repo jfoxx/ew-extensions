@@ -117,6 +117,26 @@ library index's `options` sheet:
 the label itself is stored. These options are separate from the field labels in
 Library Metadata.
 
+### Checkboxes
+
+In the same `options` sheet, set `type` to `checkbox` and supply explicit
+`checked` and `unchecked` stored values. Leave `values` empty for these rows.
+Rows without `type=checkbox` continue to use dropdowns as before.
+
+| blocks | key | values | type | checked | unchecked |
+| --- | --- | --- | --- | --- | --- |
+| button | Externalize | | checkbox | true | false |
+| button | Open | | checkbox | _blank | _self |
+
+Checkboxes apply to simple text values in key/value rows, not link or image
+fields. Each toggle writes the configured value as ordinary document text using
+the same live-editor updates and conflict checks as other fields. Both values
+must be nonempty and different after trimming; invalid definitions are ignored,
+leaving the ordinary text field available. Matching is exact and case-sensitive.
+A current value matching neither configured value displays a mixed checkbox
+until the author toggles it; merely selecting the block never rewrites content.
+Disabled and read-only fields cannot be toggled.
+
 ## Using the sidebar
 
 Place the caret anywhere inside a block; selecting text is unnecessary. Moving

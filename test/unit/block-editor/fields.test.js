@@ -97,6 +97,28 @@ describe('block editor metadata and source-faithful sidecars', () => {
     expect(sameTarget(blockTarget, { ...blockTarget, index: 11 })).to.equal(false);
     expect(sameTarget(blockTarget, null)).to.equal(false);
   });
+  it('parses explicit checkbox values and preserves block-specific overrides', () => {
+    const options = processBlockOptions([
+      { blocks: 'all', key: 'Externalize', type: ' CHECKBOX ', checked: 'true', unchecked: 'false' },
+      { blocks: 'button', key: 'Externalize', type: 'checkbox', checked: 'yes', unchecked: 'no' },
+      { blocks: 'button', key: 'Open', values: 'Current window=_self|New tab=_blank' },
+    ]);
+    expect(options.get('hero').get('externalize')).to.deep.equal({
+      type: 'checkbox', checked: 'true', unchecked: 'false',
+    });
+    expect(options.get('button').get('externalize').checked).to.equal('yes');
+    expect(options.get('button').get('open')[1].value).to.equal('_blank');
+  });
+  it('ignores incomplete or ambiguous checkbox definitions', () => {
+    const options = processBlockOptions([
+      { blocks: 'button', key: 'Missing', type: 'checkbox', checked: 'true' },
+      { blocks: 'button', key: 'Equal', type: 'checkbox', checked: 'yes', unchecked: ' yes ' },
+      { blocks: 'button', key: 'Numeric', type: 'checkbox', checked: 1, unchecked: 0 },
+    ]).get('button');
+    expect(options.has('missing')).to.equal(false);
+    expect(options.has('equal')).to.equal(false);
+    expect(options.get('numeric')).to.deep.equal({ type: 'checkbox', checked: '1', unchecked: '0' });
+  });
 });
 
 describe('revision-bound draft lifecycle', () => {
