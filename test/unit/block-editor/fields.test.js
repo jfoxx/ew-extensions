@@ -97,27 +97,33 @@ describe('block editor metadata and source-faithful sidecars', () => {
     expect(sameTarget(blockTarget, { ...blockTarget, index: 11 })).to.equal(false);
     expect(sameTarget(blockTarget, null)).to.equal(false);
   });
-  it('parses explicit checkbox values and preserves block-specific overrides', () => {
+  it('parses checkbox choices and preserves block-specific overrides', () => {
     const options = processBlockOptions([
-      { blocks: 'all', key: 'Externalize', type: ' CHECKBOX ', checked: 'true', unchecked: 'false' },
-      { blocks: 'button', key: 'Externalize', type: 'checkbox', checked: 'yes', unchecked: 'no' },
+      { blocks: 'all', key: 'Externalize', type: ' CHECKBOX ', values: 'true' },
+      { blocks: 'button', key: 'Externalize', type: 'checkbox', values: 'Yes=yes' },
       { blocks: 'button', key: 'Open', values: 'Current window=_self|New tab=_blank' },
+      { blocks: 'button', key: 'Channels', type: 'checkbox', values: 'Email=email|SMS=sms' },
     ]);
     expect(options.get('hero').get('externalize')).to.deep.equal({
-      type: 'checkbox', checked: 'true', unchecked: 'false',
+      type: 'checkbox', values: [{ title: 'true', value: 'true' }],
     });
-    expect(options.get('button').get('externalize').checked).to.equal('yes');
+    expect(options.get('button').get('externalize').values[0].value).to.equal('yes');
     expect(options.get('button').get('open')[1].value).to.equal('_blank');
+    expect(options.get('button').get('channels').values).to.have.length(2);
   });
   it('ignores incomplete or ambiguous checkbox definitions', () => {
     const options = processBlockOptions([
-      { blocks: 'button', key: 'Missing', type: 'checkbox', checked: 'true' },
-      { blocks: 'button', key: 'Equal', type: 'checkbox', checked: 'yes', unchecked: ' yes ' },
-      { blocks: 'button', key: 'Numeric', type: 'checkbox', checked: 1, unchecked: 0 },
+      { blocks: 'button', key: 'Missing', type: 'checkbox' },
+      { blocks: 'button', key: 'Equal', type: 'checkbox', values: 'Yes=yes|Also=yes' },
+      { blocks: 'button', key: 'Empty', type: 'checkbox', values: 'yes|' },
+      { blocks: 'button', key: 'Comma', type: 'checkbox', values: 'One=one,two|Three=three' },
+      { blocks: 'button', key: 'Boolean', type: 'checkbox', values: true },
     ]).get('button');
     expect(options.has('missing')).to.equal(false);
     expect(options.has('equal')).to.equal(false);
-    expect(options.get('numeric')).to.deep.equal({ type: 'checkbox', checked: '1', unchecked: '0' });
+    expect(options.has('empty')).to.equal(false);
+    expect(options.has('comma')).to.equal(false);
+    expect(options.get('boolean').values[0].value).to.equal('true');
   });
 });
 

@@ -92,20 +92,16 @@ export function isMultiBlockConfigured(rows, name) {
 export function processBlockOptions(data) {
   const map = new Map();
   (data || []).forEach((row) => {
-    if (!row.blocks || !row.key) return;
-    let values;
-    if (row.type?.trim().toLowerCase() === 'checkbox') {
-      const checked = String(row.checked ?? '').trim();
-      const unchecked = String(row.unchecked ?? '').trim();
-      if (!checked || !unchecked || checked === unchecked) return;
-      values = { type: 'checkbox', checked, unchecked };
-    } else {
-      if (!row.values) return;
-      values = row.values.split('|').map((entry) => {
-        const [title, value] = entry.split('=').map((part) => part.trim());
-        return { title, value: value || title };
-      });
-    }
+    if (!row.blocks || !row.key || !row.values) return;
+    const choices = String(row.values).split('|').map((entry) => {
+      const [title, value] = entry.split('=').map((part) => part.trim());
+      return { title, value: value || title };
+    });
+    const checkbox = row.type?.trim().toLowerCase() === 'checkbox';
+    if (checkbox && (choices.some(({ value }) => !value)
+      || (choices.length > 1 && choices.some(({ value }) => value.includes(',')))
+      || new Set(choices.map(({ value }) => value)).size !== choices.length)) return;
+    const values = checkbox ? { type: 'checkbox', values: choices } : choices;
     row.blocks.split(',').forEach((name) => {
       const key = normalizeForSlashMenu(name);
       if (!map.has(key)) map.set(key, new Map());

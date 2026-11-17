@@ -216,22 +216,34 @@ export class EwBlockProperties extends LitElement {
     this._apply(target, { type: 'changeList', target: field.target, from, to: to ?? null });
   }
 
+  _commitCheckbox(field, value, checked) {
+    if (field.checkbox.values.length === 1) return this._commitText(field, checked ? value : '');
+    const selected = new Set((this._session.value(field, 'value') || '')
+      .split(',').map((entry) => entry.trim()).filter(Boolean));
+    if (checked) selected.add(value);
+    else selected.delete(value);
+    return this._commitText(field, [...selected].join(', '));
+  }
+
   _renderTextField(field, disabled) {
     const id = `ew-block-field-${field.key}`;
     if (field.checkbox) {
-      const value = this._session.value(field, 'value');
+      const choices = field.checkbox.values;
+      const currentValue = this._session.value(field, 'value') || '';
+      const selected = choices.length === 1
+        ? [currentValue] : currentValue.split(',').map((entry) => entry.trim());
       return html`
-        <label for=${id} class="ew-block-checkbox">
-          <input id=${id} type="checkbox"
-            .checked=${value === field.checkbox.checked}
-            .indeterminate=${![field.checkbox.checked, field.checkbox.unchecked].includes(value)}
-            ?disabled=${disabled || field.readOnly}
-            @change=${(event) => this._commitText(
-              field,
-              event.target.checked ? field.checkbox.checked : field.checkbox.unchecked,
-            )}>
-          ${field.label}
-        </label>`;
+        <div role="group" aria-label=${field.label}>
+          ${choices.length > 1 ? html`<span>${field.label}</span>` : nothing}
+          ${choices.map(({ title, value }, index) => html`
+            <label for="${id}-${index}" class="ew-block-checkbox">
+              <input id="${id}-${index}" type="checkbox"
+                .checked=${selected.includes(value)}
+                ?disabled=${disabled || field.readOnly}
+                @change=${(event) => this._commitCheckbox(field, value, event.target.checked)}>
+              ${choices.length === 1 ? field.label : title}
+            </label>`)}
+        </div>`;
     }
     let control;
     if (field.values?.length) {

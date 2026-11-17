@@ -119,23 +119,30 @@ Library Metadata.
 
 ### Checkboxes
 
-In the same `options` sheet, set `type` to `checkbox` and supply explicit
-`checked` and `unchecked` stored values. Leave `values` empty for these rows.
+In the same `options` sheet, set `type` to `checkbox` and supply choices in `values`.
 Rows without `type=checkbox` continue to use dropdowns as before.
 
-| blocks | key | values | type | checked | unchecked |
-| --- | --- | --- | --- | --- | --- |
-| button | Externalize | | checkbox | true | false |
-| button | Open | | checkbox | _blank | _self |
+| blocks | key | values | type |
+| --- | --- | --- | --- |
+| button | Open in new tab | true | checkbox |
+| button | Externalize | true | checkbox |
+| example | Channels | Email=email\|SMS=sms\|Post=post | checkbox |
 
 Checkboxes apply to simple text values in key/value rows, not link or image
-fields. Each toggle writes the configured value as ordinary document text using
-the same live-editor updates and conflict checks as other fields. Both values
-must be nonempty and different after trimming; invalid definitions are ignored,
-leaving the ordinary text field available. Matching is exact and case-sensitive.
-A current value matching neither configured value displays a mixed checkbox
-until the author toggles it; merely selecting the block never rewrites content.
-Disabled and read-only fields cannot be toggled.
+fields. One choice produces a single checkbox using the field's label. Checked
+stores that value; unchecked clears the cell. Multiple pipe-separated choices
+produce a group using each choice's label, with the field label above the group.
+`Label=value` works as it does for dropdowns; a bare choice is its own stored value.
+
+Selected group values are stored as comma-separated text, for example `email, sms`.
+Both `email,sms` and `email, sms` are accepted when reading. No selections stores
+an empty cell. Group values cannot contain commas; display labels can. Choices
+must have unique, nonempty values. Invalid checkbox definitions are ignored,
+leaving the ordinary text field available. Matching is case-sensitive.
+Existing unknown group selections are preserved when another option is toggled;
+merely selecting the block never rewrites content. Each toggle uses the existing
+live-editor text updates and conflict checks. Disabled and read-only fields cannot
+be toggled. The `checked` and `unchecked` sheet columns are no longer used.
 
 ## Using the sidebar
 
@@ -145,7 +152,7 @@ to another block updates the sidebar, and moving outside all blocks clears it.
 | Task | How |
 | --- | --- |
 | Edit text or links | Change the field and move focus away to apply it. Simple links expose their text and destination. |
-| Change a configured value | Select an option from its dropdown. |
+| Change a configured value | Select an option from its dropdown or toggle its checkboxes. |
 | Change the variant | Use **Variant** to apply a variant available in the library. This changes the block's variant classes, not its content template. |
 | Replace the block | Click the block name to open the canvas's existing **Blocks** library and choose a replacement template. |
 | Edit repeating items | Expand an item to show its fields. Use **Add item** or its delete button to change the item count. |

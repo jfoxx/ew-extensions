@@ -115,33 +115,75 @@ describe('block editor sidebar workflow', () => {
   it('writes checkbox changes as ordinary text through the guarded field update path', async () => {
     const next = structuredClone(snapshot());
     Object.assign(next.blocks[0].rows[0].cells[0].fields[0], {
-      value: 'false', optionKey: 'Externalize',
+      value: '', optionKey: 'Externalize',
     });
     sdk.callback(next);
     element._blockOptions = new Map([['Cards', new Map([
-      ['externalize', { type: 'checkbox', checked: 'true', unchecked: 'false' }],
+      ['externalize', { type: 'checkbox', values: [{ title: 'true', value: 'true' }] }],
     ])]]);
-    const renderCheckbox = () => element._renderTextField(element._fields[0], false);
+    const renderCheckbox = () => element._renderTextField(element._fields[0], false).values[2][0];
     let template = renderCheckbox();
     expect(template.strings.join('')).to.include('type="checkbox"');
-    expect(template.values[2]).to.equal(false);
-    expect(template.values[3]).to.equal(false);
+    expect(template.values[4]).to.equal(false);
+    expect(template.values[5]).to.equal(false);
     await template.values.find((value) => typeof value === 'function')({ target: { checked: true } });
     expect(calls[0][1].changes[0]).to.deep.equal({ type: 'setText', target: fieldTarget, value: 'true' });
     template = renderCheckbox();
-    expect(template.values[2]).to.equal(true);
+    expect(template.values[4]).to.equal(true);
     await template.values.find((value) => typeof value === 'function')({ target: { checked: false } });
-    expect(calls[1][1].changes[0].value).to.equal('false');
+    expect(calls[1][1].changes[0].value).to.equal('');
   });
 
-  it('shows unknown checkbox values as mixed and disables read-only or busy controls', () => {
-    const current = { ...element._fields[0], checkbox: { checked: 'true', unchecked: 'false' } };
-    const template = element._renderTextField(current, true);
-    expect(template.values[2]).to.equal(false);
-    expect(template.values[3]).to.equal(true);
-    expect(template.values[4]).to.equal(true);
-    expect(element._renderTextField({ ...current, readOnly: true }, false).values[4]).to.equal(true);
+  it('leaves unknown values untouched and disables read-only or busy checkboxes', () => {
+    const current = { ...element._fields[0], checkbox: { values: [{ title: 'true', value: 'true' }] } };
+    const template = element._renderTextField(current, true).values[2][0];
+    expect(template.values[4]).to.equal(false);
+    expect(template.values[5]).to.equal(true);
+    expect(element._renderTextField({ ...current, readOnly: true }, false)
+      .values[2][0].values[5]).to.equal(true);
     expect(calls).to.have.length(0);
+  });
+
+  it('stores checkbox groups as comma-separated values and clears the last selection', async () => {
+    const next = structuredClone(snapshot());
+    next.blocks[0].rows[0].cells[0].fields[0].value = '';
+    sdk.callback(next);
+    const checkbox = { values: [{ title: 'Email', value: 'email' }, { title: 'SMS', value: 'sms' }] };
+    const current = () => ({ ...element._fields[0], checkbox });
+    await element._commitCheckbox(current(), 'email', true);
+    await element._commitCheckbox(current(), 'sms', true);
+    expect(element._session.value(current(), 'value')).to.equal('email, sms');
+    const controls = element._renderTextField(current(), false).values[2];
+    expect(controls).to.have.length(2);
+    expect(controls[0].values[4]).to.equal(true);
+    expect(controls[0].values[7]).to.equal('Email');
+    await element._commitCheckbox(current(), 'email', false);
+    expect(calls[2][1].changes[0].value).to.equal('sms');
+    await element._commitCheckbox(current(), 'sms', false);
+    expect(calls[3][1].changes[0].value).to.equal('');
+  });
+
+  it('preserves unknown group selections when toggling a known option', async () => {
+    const checkbox = { values: [{ title: 'Email', value: 'email' }, { title: 'SMS', value: 'sms' }] };
+    await element._commitCheckbox({ ...element._fields[0], checkbox }, 'email', true);
+    expect(calls[0][1].changes[0].value).to.equal('Hello, email');
+  });
+
+  it('reads comma-separated selections with or without spaces', async () => {
+    const next = structuredClone(snapshot());
+    next.blocks[0].rows[0].cells[0].fields[0].value = 'email, sms';
+    sdk.callback(next);
+    const checkbox = { values: [{ title: 'Email', value: 'email' }, { title: 'SMS', value: 'sms' }] };
+    const current = () => ({ ...element._fields[0], checkbox });
+    expect(element._renderTextField(current(), false).values[2]
+      .every((control) => control.values[4])).to.equal(true);
+    next.revision += 1;
+    next.blocks[0].rows[0].cells[0].fields[0].value = 'email,sms';
+    sdk.callback(next);
+    expect(element._renderTextField(current(), false).values[2]
+      .every((control) => control.values[4])).to.equal(true);
+    await element._commitCheckbox(current(), 'email', false);
+    expect(calls[0][1].changes[0].value).to.equal('sms');
   });
 
   it('downloads content image bytes once for fields and repeating-item thumbnails', async () => {
